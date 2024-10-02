@@ -21,8 +21,8 @@ The demo is limited to 10 nodes only (including root node).
 ## What you'll need to run the demo
 
 - PC with Windows
-- One [NUCLEO-WL55JC](https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html board connected to the PC (via USB cable) that will act as the root of the network
-- At least one more (and up to 9) [NUCLEO-WL55JC](https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html boards that will act as the network nodes
+- One [NUCLEO-WL55JC](https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html) board connected to the PC (via USB cable) that will act as the root of the network
+- At least one more (and up to 9) [NUCLEO-WL55JC](https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html) boards that will act as the network nodes
 - STM32CubeIDE, available for download from [the official ST site](https://www.st.com/en/development-tools/stm32cubeide.html)
 - Any serial port terminal, for example [ExtraPutty](https://sourceforge.net/projects/extraputty), to view the logs
 - (Optionally)STM32CubeProgrammer available for download from [the official ST site](https://www.st.com/en/development-tools/stm32cubeprog.html)
