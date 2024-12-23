@@ -1,3 +1,11 @@
+/**
+@file
+@copyright $Copyright$
+@version   $Revision$
+@purpose   embeNET demo
+@brief     Exemplary MQTT-SN client service
+*/
+
 #ifndef MQTTSN_CLIENT_SERVICE_H_
 #define MQTTSN_CLIENT_SERVICE_H_
 

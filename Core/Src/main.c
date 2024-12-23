@@ -6,7 +6,7 @@
  ******************************************************************************
  * @attention
  *
- * Copyright (c) 2023 STMicroelectronics.
+ * Copyright (c) 2024 STMicroelectronics.
  * All rights reserved.
  *
  * This software is licensed under terms that can be found in the LICENSE file
@@ -29,13 +29,16 @@
 #include <stdio.h>
 #include <inttypes.h>
 // embeNET includes
-#include "embenet_node.h"
-#include "enms_node.h"
+#include <embetech/logger.h>
+#include <embenet/node.h>
+#include <embenet/enms_node.h>
 // demo services
-#include "custom_service.h"
+#include "udp_service.h"
 #include "mqttsn_client_service.h"
-// board and chip specific header files
+#include "synchronous_led_task.h"
+// other includes
 #include "usart.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,16 +82,19 @@ static void onJoined(EMBENET_PANID panId, const EMBENET_NODE_QuickJoinCredential
     printf("Joined network with PANID: 0x%04" PRIx16 "\n", panId);
 
     // Start ENMS Service that provides network-wide telemetry information
-    EnmsNodeResult enmsStartStatus = ENMS_NODE_Start(&enmsNode);
-    if (ENMS_NODE_RESULT_OK == enmsStartStatus) {
+    EnmsResult enmsStartStatus = ENMS_NODE_Start(&enmsNode);
+    if (ENMS_RESULT_OK == enmsStartStatus) {
         printf("ENMS service started\n");
     } else {
         printf("ENMS service failed to start with status: %d\n", (int)enmsStartStatus);
     }
 
+	// Start LED blinking task
+    synchronous_led_task_start();
+
 #if 1 != IS_ROOT
     // Start exemplary, user-defined custom service
-    custom_service_start();
+    udp_service_start();
     // Start MQTT-SN demo service
     mqttsn_client_service_start();
 #endif
@@ -100,16 +106,18 @@ static void onJoined(EMBENET_PANID panId, const EMBENET_NODE_QuickJoinCredential
 static void onLeft(void) {
     printf("Node has left the network\n");
     // Stop ENMS service
-    EnmsNodeResult enmsStopStatus = ENMS_NODE_Stop(&enmsNode);
-    if (ENMS_NODE_RESULT_OK == enmsStopStatus) {
+    EnmsResult enmsStopStatus = ENMS_NODE_Stop(&enmsNode);
+    if (ENMS_RESULT_OK == enmsStopStatus) {
         printf("ENMS service stopped\n");
     } else {
         printf("ENMS service failed to stop with status: %d\n", (int)enmsStopStatus);
     }
+	// Stop LED blinking task
+    synchronous_led_task_stop();
 
 #if 1 != IS_ROOT
     // Stop exemplary, user-defined custom service
-    custom_service_stop();
+    udp_service_stop();
     // Stop MQTT-SN demo service
     mqttsn_client_service_stop();
 #endif
@@ -146,6 +154,13 @@ static void onQuickJoinCredentialsObsolete(void) {
     printf("Quick join credentials became obsolete\n");
 }
 
+/**
+ * @brief User-defined log output function used for logging diagnostic logs from embeNET
+ */
+static void loggerOutput(char c, void* context) {
+	LOGGER_UART_Write(&c, 1);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -177,6 +192,11 @@ int main(void)
     MX_GPIO_Init();
     /* USER CODE BEGIN 2 */
     LOGGER_UART_Init();
+    LOGGER_SetOutput(loggerOutput, NULL);
+    LOGGER_SetRuntimeLevel(LOGGER_LEVEL_TRACE);
+    // You can change this to LOGGER_Enable to enable more logs from embeNET:
+    LOGGER_Disable();
+
     printf("\n"
             "+---------------------------------------------+\n"
             "   embeNET Node demo for nucleo-wl55jc board   \n"
@@ -193,7 +213,8 @@ int main(void)
 
     // Initialize network stack
     if (EMBENET_RESULT_OK == EMBENET_NODE_Init(&handlers)) {
-        printf("embeNET Node initialized\n");
+        EMBENET_Version ver = EMBENET_NODE_GetVersion();
+    	printf("embeNET Node v%d.%d.%d initialized\n", ver.hi, ver.lo, ver.rev);
     } else {
         printf("Failed to initialize embeNET Node\n");
     }
@@ -202,33 +223,39 @@ int main(void)
     uint8_t hardwareId[16] = { 0x00 };
     memcpy(hardwareId, (void const*) UID_BASE, 12);
     // Initialize ENMS service on its default port. You may specify custom Hardware Identifier
-    if (ENMS_NODE_RESULT_OK == ENMS_NODE_Init(&enmsNode, ENMS_DEFAULT_PORT, hardwareId, NULL)) {
+    if (ENMS_RESULT_OK == ENMS_NODE_Init(&enmsNode, ENMS_NODE_GetDefaultPort(), hardwareId, ENMS_NODE_GetSmallScalePolicy())) {
         printf("ENMS service initialized\n");
     } else {
         printf("Failed to initialize ENMS service!\n");
     }
+    // Initialize LED blinking task
+    synchronous_led_task_init();
 
 #if 1 == IS_ROOT
     printf("Acting as root with UID: 0x%x%08x\n", (unsigned)(EMBENET_NODE_GetUID()>>32), (unsigned)(EMBENET_NODE_GetUID()));
     // When the application is built for Root node, start as root instead of joining the network
-    EMBENET_NODE_RootStart(NULL, 0);
+    if (EMBENET_RESULT_OK == EMBENET_NODE_RootStart(NULL, 0)) {
+    	printf("Root started successfully\n");
+    } else {
+    	printf("Failed to start as root!\n");
+    }
 #else
     printf("Acting as node with UID: 0x%x%08x\n", (unsigned)(EMBENET_NODE_GetUID()>>32), (unsigned)(EMBENET_NODE_GetUID()));
 
     // Initialize exemplary, user-defined custom service
-    custom_service_init();
+    udp_service_init();
     // Initialize MQTT-SN service
     mqttsn_client_service_init();
 
     // Additionally tell the ENMS what services are running
-    (void) ENMS_NODE_RegisterService(&enmsNode, "custom", 1);
-    (void) ENMS_NODE_RegisterService(&enmsNode, "mqttsn", 1);
+    (void) ENMS_NODE_RegisterService(&enmsNode, "udp-service", 1);
+    (void) ENMS_NODE_RegisterService(&enmsNode, "mqttsn-service", 1);
 
     // embeNET network configuration:
     // K1 key, used to authenticate the network node should join and
     // PSK - Node's secret key.
     // Note that the psk value should be preferably stored in secure memory, or be preloaded using custom bootloader.
-    EMBENET_NODE_Config config = {
+    const EMBENET_NODE_JoinConfig config = {
         .k1.val = { 0xc0, 0x8b, 0x76, 0x62, 0x77, 0x09, 0x9e, 0x7d, 0x7e, 0x9c, 0x02, 0x22, 0xf1, 0x68, 0xcc, 0x9e },
         .psk.val = {0x46, 0xd7, 0xdc, 0x94, 0xe8, 0xee, 0x74, 0x96, 0xce, 0xaf, 0x54, 0xa3, 0xab, 0x64, 0xcb, 0xeb },
     };
