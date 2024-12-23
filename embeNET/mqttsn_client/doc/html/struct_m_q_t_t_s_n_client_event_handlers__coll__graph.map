@@ -1,0 +1,13 @@
+<map id="MQTTSNClientEventHandlers" name="MQTTSNClientEventHandlers">
+<area shape="rect" id="Node000001" title="Structure grouping event callbacks for MQTT&#45;SN client." alt="" coords="5,5,216,31"/>
+<area shape="rect" id="Node000002" href="$struct_m_q_t_t_s_n_client.html" title="Structure describing the MQTT&#45;SN Client." alt="" coords="230,123,346,148"/>
+<area shape="poly" id="edge6_Node000002_Node000001" title=" " alt="" coords="61,39,44,56,35,78,37,87,43,97,55,106,72,113,120,124,230,131,229,137,120,129,71,118,52,110,39,100,32,89,30,77,39,53,57,36"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,124,192,114,170,101,160,90,155,79,144,56,122,33,126,29,149,53,160,77,165,87,174,97,194,110,217,119"/>
+<area shape="rect" id="Node000004" href="$struct_m_q_t_t_s_n_topic_descriptor.html" title="Structure describing a single MQTT&#45;SN topic." alt="" coords="199,269,377,295"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="217,146,193,157,174,174,164,192,160,209,164,226,174,244,188,257,205,267,202,271,185,261,170,247,159,227,155,209,159,190,170,170,190,152,215,141"/>
+<area shape="rect" id="Node000003" href="$struct_m_q_t_t_s_n_qos_msg.html" title="Structure describing the MQTTSN QOS(1&#45;2) message." alt="" coords="336,5,467,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="400,45,391,74,374,100,355,115,335,125,332,120,353,110,370,97,386,71,395,44"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="350,261,369,244,378,225,381,209,378,192,369,174,355,160,338,150,341,146,359,156,373,170,383,190,387,209,383,227,373,247,354,265"/>
+<area shape="rect" id="Node000005" href="$struct_m_q_t_t_s_n_session_flags.html" title="MQTT&#45;SN session flags." alt="" coords="491,5,653,31"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="563,45,544,75,516,101,486,113,442,121,346,133,346,127,441,116,484,107,513,96,540,71,559,42"/>
+</map>
