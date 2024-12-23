@@ -242,7 +242,7 @@ int main(void)
 #else
     printf("Acting as node with UID: 0x%x%08x\n", (unsigned)(EMBENET_NODE_GetUID()>>32), (unsigned)(EMBENET_NODE_GetUID()));
 
-    // Initialize exemplary, user-defined custom service
+    // Initialize exemplary, user-defined custom UDP service
     udp_service_init();
     // Initialize MQTT-SN service
     mqttsn_client_service_init();
