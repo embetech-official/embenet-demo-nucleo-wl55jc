@@ -2,7 +2,7 @@
  * @file
  * @license   commercial
  * @copyright Embetech sp. z o.o.
- * @version   1.0.1
+ * @version   1.1.0
  * @purpose   embeNET MQTT-SN client
  * @brief     MQTT-SN client API
  *
