@@ -40,4 +40,4 @@ Read the ['Getting started with embeNET demo for NUCLEO-WL55JC board'](https://e
 
 ## How can I learn more ?
 
-More information about the embeNET wireless communication network is available on the ['official website'](https://embe.net).
+More information about the embeNET wireless communication network is available on the [official website](https://embe.net).
