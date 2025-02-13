@@ -18,7 +18,7 @@ The demo includes the following components of the embeNET Suite:
 The demo *can only be used for evaluation purposes* (see LICENSE.txt for details).
 The demo is limited to 10 nodes only (including root node).
 
-## What you'll need to run the demo
+## What you'll need to run the demo ?
 
 - PC with Windows
 - One [NUCLEO-WL55JC](https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html) board connected to the PC (via USB cable) that will act as the root of the network
@@ -34,6 +34,10 @@ Optionally, to play with the MQTT-SN demo service you'll need:
 Optionally, to easily interact with the custom UDP service you'll need
 - [UDP - Sender/Reciever app from Microsoft Store](https://www.microsoft.com/store/apps/9nblggh52bt0)
 
-## How to start?
+## How to start ?
 
-Read the ['Getting started with embeNET demo for NUCLEO-WL55JC board'](https://embe.tech/docs/?q=doxyview/Getting%20started%20with%20Nucleo-WL55JC/index.html) tutorial.
+Read the ['Getting started with embeNET demo for NUCLEO-WL55JC board'](https://embe.net/docs/?q=doxyview/Getting%20started%20with%20Nucleo-WL55JC/index.html) tutorial.
+
+## How can I learn more ?
+
+More information about the embeNET wireless communication network is available on the [official website](https://embe.net).

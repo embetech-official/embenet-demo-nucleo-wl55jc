@@ -1,16 +1,17 @@
 /**
 @file
-@copyright (c) 2023 EMBETECH SP. Z O.O. All rights reserved.
-@version   1.1.4417
+@copyright $Copyright$
+@version   $Revision$
 @purpose   embeNET demo
 @brief     Exemplary MQTT-SN client service
 */
 
-#include "mqttsn_client.h"
-#include "embenet_node.h"
+#include "embenet/mqttsn_client.h"
+#include "embenet/node.h"
 #include "gpio.h"
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 
@@ -20,6 +21,9 @@
 const uint16_t gatewayPortNo = 1885;
 // MQTT-SN Client port number
 const uint16_t clientPortNo = gatewayPortNo;
+
+// How often a button press can be reported through MQTTSN
+#define MQTTSN_BUTTON_DELAY_MS 1000
 
 // Enumeration describing the state of the MQTT-SN service
 enum mqttsnServiceState {
@@ -48,7 +52,7 @@ static const char* ledControlTopic = "ledcontrol";
 
 // Prototypes of event handlers
 static void onMQTTConnected(MQTTSNClient* client);
-static void onMQTTDisconnected(MQTTSNClient* client);
+static void onMQTTDisconnected(MQTTSNClient* client, MQTTSNClientDisconnectionReason disconnectionReason);
 
 // Structure holding event handlers
 const MQTTSNClientEventHandlers mqttEventHandlers = {
@@ -77,10 +81,21 @@ static void onMQTTConnected(MQTTSNClient* client) {
  * It tries to reconnect over and over again.
  *
  * @param[in] client MQTT-SN client descriptor
+ * @param[in] disconnectionReason reason for the disconnection
  *
  */
-static void onMQTTDisconnected(MQTTSNClient* client) {
-    puts("MQTT-SN: Client disconnected. Will try to reconnect in 5s.");
+static void onMQTTDisconnected(MQTTSNClient* client, MQTTSNClientDisconnectionReason disconnectionReason) {
+	switch (disconnectionReason) {
+	case MQTTSN_CLIENT_DISCONNECTED_DUE_TO_OWN_REQUEST:
+	    puts("MQTT-SN: Client disconnected due to own request. Will try to reconnect in 5s.");
+		break;
+	case MQTTSN_CLIENT_DISCONNECTED_BY_GATEWAY:
+		puts("MQTT-SN: Client disconnected by gateway. Will try to reconnect in 5s.");
+	  break;
+	case MQTTSN_CLIENT_DISCONNECTED_DUE_TO_TIMEOUT:
+		puts("MQTT-SN: Client disconnected due to gateway communication timeout. Will try to reconnect in 5s.");
+		break;
+	}
     // Cancel the service task
     EMBENET_NODE_TaskCancel(mqttsnTaskId);
     // Re-initialize the client
@@ -100,7 +115,7 @@ static void onMQTTDisconnected(MQTTSNClient* client) {
  *
  * @param[in] client MQTT-SN client descriptor
  * @param[in] topicId id of the registered topic
- * @param[in] topicName registered topic (string)
+ * @param[in] topicName registered topic name (string)
  *
  */
 static void onMQTTTopicRegistered(const struct MQTTSNClient* client, MQTTSNTopicId topicId, const char* topicName) {
@@ -117,9 +132,27 @@ static void onMQTTTopicRegistered(const struct MQTTSNClient* client, MQTTSNTopic
 
 
 /**
+ * This callback function is called when the client successfully subscribes to a topic.
+ *
+ * @param[in] client MQTT-SN client descriptor
+ * @param[in] topicId ID of the MQTT-SN topic
+ * @param[in] topicName name of the topic (string)
+ *
+ */
+static void onMQTTTopicSubscribed(const struct MQTTSNClient *client, MQTTSNTopicId topicId, char const *topicName) {
+	printf("MQTT-SN: Subscribed to the '%s' topic\n", topicName);
+	// Move to next state
+	serviceState = RUNNING;
+	// Reschedule immediately
+	EMBENET_NODE_TaskSchedule(mqttsnTaskId, EMBENET_NODE_TIME_SOURCE_LOCAL, EMBENET_NODE_GetLocalTime());
+}
+
+
+/**
  * This callback function is called when message on the control topic is received.
  *
  * @param[in] client MQTT-SN client descriptor
+ * @param[in] topicId ID of the MQTT-SN topic
  * @param[in] data message data
  * @param[in] dataSize message data size
  *
@@ -169,7 +202,7 @@ static void mqttsnServiceTask(EMBENET_TaskId taskId, EMBENET_NODE_TimeSource tim
             EMBENET_IPV6 addr;
             EMBENET_NODE_GetBorderRouterAddress(&addr);
             // Perform a clean connect - you can tweak the timings here
-            MQTTSN_CLIENT_CleanConnect(&mqttsnClient, &addr, gatewayPortNo, 30, 10, NULL, NULL);
+            MQTTSN_CLIENT_Connect(&mqttsnClient, &addr, gatewayPortNo, 30000, 5000, NULL, NULL, 2);
             // Reschedule the task to try again after 10s if failed to connect
             EMBENET_NODE_TaskSchedule(mqttsnTaskId, timeSource, t + 10000);
             break;
@@ -180,14 +213,14 @@ static void mqttsnServiceTask(EMBENET_TaskId taskId, EMBENET_NODE_TimeSource tim
         case REGISTER_BUTTON_STATE_TOPIC:
             puts("MQTT-SN: Registering button state topic");
             MQTTSN_CLIENT_RegisterTopic(&mqttsnClient, buttonTopic, onMQTTTopicRegistered);
+            // Reschedule the task to try again after 5s if acknowledgment is not received
+            EMBENET_NODE_TaskSchedule(mqttsnTaskId, timeSource, t + 5000);
             break;
         case SUBSCRIBE_TO_TOPIC:
             printf("MQTT-SN: Subscribing to topic: '%s'\n", ledControlTopic);
-            MQTTSN_CLIENT_Subscribe(&mqttsnClient, ledControlTopic, onLedcontrolUpdate);
-            // Move to normal state of operation
-            serviceState = RUNNING;
-            // Reschedule the task
-            EMBENET_NODE_TaskSchedule(mqttsnTaskId, timeSource, EMBENET_NODE_GetLocalTime() + 1000);
+            MQTTSN_CLIENT_Subscribe(&mqttsnClient, ledControlTopic, MQTTSN_QOS0, onMQTTTopicSubscribed, onLedcontrolUpdate);
+            // Reschedule the task to try again after 5s if acknowledgment is not received
+            EMBENET_NODE_TaskSchedule(mqttsnTaskId, timeSource, t + 5000);
             break;
         case RUNNING: {
             // Get current local time
@@ -196,8 +229,8 @@ static void mqttsnServiceTask(EMBENET_TaskId taskId, EMBENET_NODE_TimeSource tim
             char uptimeStr[80];
             sprintf(uptimeStr, "{\"uptime\":%u}", (unsigned)(uptime / 1000U));
             // Publish the message
-            printf("MQTT-SN: Publishing on topic '%s' message: %s\n", uptimeTopic, uptimeStr);
-            MQTTSN_CLIENT_PublishMessage(&mqttsnClient, uptimeTopic, uptimeStr, strlen(uptimeStr));
+            printf("MQTT-SN: Publishing on topic '%s' message: %s QoS: 0\n", uptimeTopic, uptimeStr);
+            MQTTSN_CLIENT_PublishMessage(&mqttsnClient, uptimeTopic, MQTTSN_QOS0, uptimeStr, strlen(uptimeStr), NULL);
             // Reschedule the task
             EMBENET_NODE_TaskSchedule(taskId, timeSource, t + 10000);
         } break;
@@ -252,33 +285,37 @@ void mqttsn_client_service_stop(void) {
 }
 
 
+static void onPublishSent(struct MQTTSNClient *client, MQTTSNTopicId topicId, void const *data, size_t dataSize) {
+	HAL_GPIO_WritePin(GPIOB, LED1_Pin, GPIO_PIN_RESET);
+	printf("MQTT-SN: Publish successful\n");
+}
+
+static uint64_t publishButtonTopic(int buttonId) {
+	// Prepare message to be published
+	char payloadStr[32];
+	sprintf(payloadStr, "{\"button\":%d}", buttonId);
+	// Publish message
+	printf("MQTT-SN: Publishing on topic '%s' message: %s QoS: 2\n", buttonTopic, payloadStr);
+	MQTTSN_CLIENT_PublishMessage(&mqttsnClient, buttonTopic, MQTTSN_QOS2, payloadStr, strlen(payloadStr), onPublishSent);
+	HAL_GPIO_WritePin(GPIOB, LED1_Pin, GPIO_PIN_SET);
+	// return publish timestamp
+	return EMBENET_NODE_GetLocalTime();
+}
+
+
 void mqttsn_client_service_proc(void) {
     // Holds the last timestamp at which gateway was notified
-    static uint64_t lastTimestamp;
-    // Holds the number of button presses
-    static int buttonPressCounter;
-
+    static uint64_t lastPublishTimestamp;
     // Check if service is running
-    if (serviceState == RUNNING) {
+    if ((serviceState == RUNNING) && (lastPublishTimestamp + MQTTSN_BUTTON_DELAY_MS < EMBENET_NODE_GetLocalTime())) {
         // Check if button is pressed
         if (GPIO_PIN_RESET == HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0)) {
-            // Check if sufficient time passed from the last time we notified the gateway
-            if (lastTimestamp + 1000 < EMBENET_NODE_GetLocalTime()) {
-                HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
-
-                // Prepare message to be published
-                char payloadStr[80];
-                sprintf(payloadStr, "{\"button\":%d}", ++buttonPressCounter);
-                // Publish message
-                printf("MQTT-SN: Publishing on topic '%s' message: %s\n", buttonTopic, payloadStr);
-                MQTTSN_CLIENT_PublishMessage(&mqttsnClient, buttonTopic, payloadStr, strlen(payloadStr));
-                // Save timestamp
-                lastTimestamp = EMBENET_NODE_GetLocalTime();
-            }
+        	lastPublishTimestamp = publishButtonTopic(1);
+        } else if(GPIO_PIN_RESET == HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1)) {
+        	lastPublishTimestamp = publishButtonTopic(2);
+        } else if(GPIO_PIN_RESET == HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_6)) {
+        	lastPublishTimestamp = publishButtonTopic(3);
         }
     }
-    // reset LED
-    if (GPIO_PIN_SET == HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0)){
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
-    }
 }
+
