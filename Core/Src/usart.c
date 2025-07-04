@@ -19,9 +19,9 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "usart.h"
-#include "embetech/ring_buffer.h"
 
 /* USER CODE BEGIN 0 */
+#include "embetech/ring_buffer.h"
 
 #define DEBUG_UART_TX_BUFFER_SIZE 1024
 
