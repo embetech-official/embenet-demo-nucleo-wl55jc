@@ -1,5 +1,16 @@
-#ifndef EXPECT_H_
-#define EXPECT_H_
+/**
+ * @file
+ * @license   MIT License
+ * @copyright Embetech sp. z o.o.
+ * @version   1.1.0
+ * @purpose   Embeutils library
+ * @brief     A set of simple utilities to manage error handling in a unified way
+ */
+
+#ifndef EMBEUTILS_EXPECT_H_
+#define EMBEUTILS_EXPECT_H_
+
+#include <embetech/compiler_support.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,8 +107,11 @@ extern "C" {
  */
 
 #ifndef EMBEUTILS_EXPECT_VERBOSE
-#define EMBEUTILS_EXPECT_VERBOSE 0 ///< When enabled, increases verbosity of information passed to EXPECT_OnAbortHandler
-                                          ///< @note Enabling this macro WILL generate measurable memory overhead
+/**
+ * When enabled, increases verbosity of information passed to EXPECT_OnAbortHandler
+ * @note Enabling this macro WILL generate measurable memory overhead
+ */
+#define EMBEUTILS_EXPECT_VERBOSE 0
 #endif
 
 /// @internal @brief Noreturn attribute
@@ -122,10 +136,10 @@ EXPECT_INTERNAL_NORETURN void EXPECT_OnAbortHandler(char const *why, char const 
  * As the evaluation of the expression may be time consuming, it is possible to globally disable this kind of runtime checks by defining
  * EMBEUTILS_EXTRA_CHECKS to 0
  */
-#if(defined EMBEUTILS_EXTRA_CHECKS) && (EMBEUTILS_EXTRA_CHECKS == 1)
+#if(1 == EMBEUTILS_EXTRA_CHECKS)
 #define EXPECT_EXTRA(expr) EXPECT(expr)
 #else
-#define EXPECT_EXTRA(expr) if(0)
+#define EXPECT_EXTRA(expr) if(!(expr) && 0)
 #endif
 
 /**
@@ -178,4 +192,4 @@ EXPECT_INTERNAL_NORETURN void EXPECT_OnAbortHandler(char const *why, char const 
 
 /** @} */
 
-#endif // EXPECT_H_
+#endif

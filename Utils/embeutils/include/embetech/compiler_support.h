@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @license   MIT License
+ * @copyright Embetech sp. z o.o.
+ * @version   1.1.0
+ * @purpose   Embeutils library
+ * @brief     A set of tools for working with compiler-specific attributes
+ */
+
 #ifndef EMBEUTILS_COMPILER_SUPPORT_H_
 #define EMBEUTILS_COMPILER_SUPPORT_H_
 
@@ -16,7 +25,7 @@
 #define EMBEUTILS_NODISCARD __attribute__((unused))
 
 ///@brief Indicates that the fall through from the previous case label is intentional and should not be diagnosed by a compiler that warns on
-///fallthrough
+/// fallthrough
 #define EMBEUTILS_FALLTHROUGH __attribute__((fallthrough))
 
 #define EMBEUTILS_INLINE __attribute__((always_inline))
@@ -47,8 +56,8 @@
  * void func2(void* dst, void* src) EMBEUTILS_NONNULL(2) - only src MUST NOT take nullptr
  * @note GNU compiler checks this only with -Wnonnull flag (which is included in -Wall)
  */
-// #    define EMBEUTILS_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
-#define EMBEUTILS_NONNULL(...)
+#define EMBEUTILS_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
+
 
 #else
 #error "Compiler not supported (yet)"
